@@ -1,0 +1,153 @@
+package learnprogramming.academy.a3calculator
+
+import android.os.Bundle
+import android.view.Menu
+import android.view.MenuItem
+import android.view.View
+import android.widget.Button
+import androidx.appcompat.app.AppCompatActivity
+import com.google.android.material.snackbar.Snackbar
+
+import kotlinx.android.synthetic.main.activity_main.*
+import kotlinx.android.synthetic.main.content_main.*
+
+//Variable used for recalling state
+private const val STATE_OPERAND1 = "operand1"
+private const val STATE_OPERATION = "operation"
+private const val STATE_OPERAND1_STORED = "Operand1_Stored"
+
+class MainActivity : AppCompatActivity() {
+    //Variables to hold the operands and type of calculation
+    private var operand1: Double? = null
+    private var pendingOperation = "="
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        setContentView(R.layout.activity_main)
+        setSupportActionBar(toolbar)
+
+        //Define listener for number buttons - reads button caption using the text property and appends it to the newNumber
+        val listener = View.OnClickListener { v ->
+            val b = v as Button
+            newNumber.append(b.text)
+        }
+
+        //Set listeners for buttons
+        button0.setOnClickListener(listener)
+        button1.setOnClickListener(listener)
+        button2.setOnClickListener(listener)
+        button3.setOnClickListener(listener)
+        button4.setOnClickListener(listener)
+        button5.setOnClickListener(listener)
+        button6.setOnClickListener(listener)
+        button7.setOnClickListener(listener)
+        button8.setOnClickListener(listener)
+        button9.setOnClickListener(listener)
+        buttonDot.setOnClickListener(listener)
+
+        //listener for negative button
+        buttonNegative.setOnClickListener { v ->
+            val value = newNumber.text.toString()
+            if (value.isEmpty()) {
+                newNumber.append("-")
+            } else {
+                try {
+                    var doubleValue = value.toDouble()
+                    doubleValue *= -1
+                    newNumber.setText(doubleValue.toString())
+                } catch (e: java.lang.NumberFormatException) {
+                    //newNumber was "-" or a ".", so clear it
+                    newNumber.setText("")
+                }
+            }
+            }
+
+
+        //listener for operations buttons
+        val opListener = View.OnClickListener { v ->
+            val op = (v as Button).text.toString()
+            try {
+                val value = newNumber.text.toString().toDouble()
+                performOperation(value, op)
+            } catch (e: NumberFormatException) { //if an error is thrown and what is entered can not be converted
+                newNumber.setText("")
+            }
+            pendingOperation = op
+            operation.text = pendingOperation
+        }
+
+        buttonEquals.setOnClickListener(opListener)
+        buttonDivide.setOnClickListener(opListener)
+        buttonMultiply.setOnClickListener(opListener)
+        buttonMinus.setOnClickListener(opListener)
+        buttonPlus.setOnClickListener(opListener)
+
+        fab.setOnClickListener { view ->
+            Snackbar.make(view, "Replace with your own action", Snackbar.LENGTH_LONG)
+                .setAction("Action", null).show()
+        }
+    }
+
+    //perform operations
+    private fun performOperation(value: Double, operation: String) {
+        if (operand1 == null) {
+            operand1 = value
+        } else {
+            if (pendingOperation == "=") {
+                pendingOperation = operation
+            }
+
+            when (pendingOperation) {
+                "=" -> operand1 = value
+                "/" -> operand1 = if (value == 0.0) {
+                    Double.NaN //handle attempt to divide by zero
+                } else {
+                    operand1!! / value
+                }
+                "*" -> operand1 = operand1!! * value
+                "-" -> operand1 = operand1!! - value
+                "+" -> operand1 = operand1!! + value
+            }
+        }
+        result.setText(operand1.toString())
+        newNumber.setText("")
+    }
+
+    //Save and restore state when the phone rotates
+    override fun onSaveInstanceState(outState: Bundle) {
+        super.onSaveInstanceState(outState)
+        outState.putString(STATE_OPERATION, pendingOperation)
+        if (operand1 != null) {
+            outState.putDouble(STATE_OPERAND1, operand1!!)
+            outState.putBoolean(STATE_OPERAND1_STORED, true)
+        }
+    }
+
+    override fun onRestoreInstanceState(savedInstanceState: Bundle) {
+        super.onRestoreInstanceState(savedInstanceState)
+        pendingOperation = savedInstanceState.getString(STATE_OPERATION, "").toString()
+        operation.text = pendingOperation
+        //the default value with getDouble can't be null so we need to write code for that event
+        operand1 = if (savedInstanceState.getBoolean(STATE_OPERAND1_STORED, false)) {
+            savedInstanceState.getDouble(STATE_OPERAND1)
+        } else {
+            null
+        }
+    }
+
+    override fun onCreateOptionsMenu(menu: Menu): Boolean {
+        // Inflate the menu; this adds items to the action bar if it is present.
+        menuInflater.inflate(R.menu.menu_main, menu)
+        return true
+    }
+
+    override fun onOptionsItemSelected(item: MenuItem): Boolean {
+        // Handle action bar item clicks here. The action bar will
+        // automatically handle clicks on the Home/Up button, so long
+        // as you specify a parent activity in AndroidManifest.xml.
+        return when (item.itemId) {
+            R.id.action_settings -> true
+            else -> super.onOptionsItemSelected(item)
+        }
+    }
+}
